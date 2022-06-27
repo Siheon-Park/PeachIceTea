@@ -7,7 +7,6 @@ import pennylane as qml
 class QCNN:
     def __init__(self, n_qubits):
         self.n_qubits = n_qubits
-        self.dev = qml.device('default.qubit', wires=self.n_qubits)
         # total required layer for QCNN
         self.total_layer = 0
         # information about used qubits in each layer
@@ -39,6 +38,8 @@ class QCNN:
 
         self.QCNN_tree.append([0])
         self.ancilla_info.append(-1)
+        # total qubit is
+        self.dev = qml.device('default.qubit', wires=temp_ancilla)
         # generate MNIST dataset
         '''Generate MNIST quantum data set'''
         self.MQ = MQ.Get_MNIST_Quantum_States(16)
@@ -47,15 +48,11 @@ class QCNN:
         self.MQ.Real_Complex_Encoding()
         self.train_qs = self.MQ.train_quantum_states
         self.test_qs = self.MQ.test_quantum_states
-        ''''''
 
     # ansatz info : information about building ansatz
-    def Get_Unitary(self, ansatz_infos, total_param_num):
-        # theta initialization
-        thetas = T.tensor(np.random.rand(total_param_num),
-                          dtype=T.float, requires_grad=True)
+    def Get_Unitary(self, thetas, ansatz_infos):
 
-        @qml.device(self.dev, wires=self.n_qubits)
+        @qml.device(self.dev, interface='torch')
         def qc(thetas, ansatz_infos):
             # theta index
             theta_idx = 0
@@ -103,7 +100,8 @@ class QCNN:
                         theta_idx += 1
 
             return qml.expval(qml.PauliZ(0))
-        return
+        U_f = qml.matrix(qc)
+        return U_f(thetas, ansatz_infos)
 
     def partial_trace_out(self):
         return
