@@ -92,5 +92,5 @@ class QCNN:
                 if idx % 2 == 0:
                     if qubit_info[idx] != qubit_info[(idx+1) % L]:
                         self.pooling_ansatz.apply(thetas[theta_idx:theta_idx+self.pooling_ansatz.num_params],
-                                wires=[qubit_info[idx], qubit_info[(idx+1) % L]])
+                                wires=[qubit_info[(idx+1) % L], qubit_info[idx]])
                         theta_idx += self.pooling_ansatz.num_params
