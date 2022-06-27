@@ -57,8 +57,30 @@ class QCNN:
         self.train_labels = T.tensor(self.MQ.train_labels, dtype=T.float)
         self.test_qs = self.MQ.test_quantum_states
         self.test_labels = T.tensor(self.MQ.test_labels, dtype=T.float)
-
-    def Do_QCNN(self, ansatz_function, ansatz_param, pooling_function, pooling_param, total_param_num):
+    def Calculate_Param_Num(self, ansatz_param, pooling_param):
+        total_param_num = 0
+        for layer in range(self.total_layer):
+            qubit_info = np.array(self.QCNN_tree[layer])
+            L = len(qubit_info)
+            qubit_info_index = np.array(range(L))
+            if self.stride == 1:
+                qubit_info_splited = [[idx for idx in qubit_info_index if idx % 2 == 0], [
+                    idx for idx in qubit_info_index if idx % 2 == 1]]
+            else:
+                qubit_info_splited = qubit_info_index
+            # apply unitary
+            for index in qubit_info_splited:
+                for idx in index:
+                    if qubit_info[idx] != qubit_info[(idx+self.stride) % L]:
+                        total_param_num += ansatz_param
+            # apply pooling
+            for idx in qubit_info_index:
+                if idx % 2 == 0:
+                    if qubit_info[idx] != qubit_info[(idx+1) % L]:
+                        total_param_num += pooling_param
+        return total_param_num
+    def Do_QCNN(self, ansatz_function, ansatz_param, pooling_function, pooling_param):
+        total_param_num = self.Calculate_Param_Num(ansatz_param, pooling_param)
         @qml.qnode(self.dev, interface='torch')
         def qc(thetas, ansatz_f, ansatz_param, pol_f, pol_param, data):
             # insert initial state as data in n_qubits, not total_qubits
@@ -88,7 +110,7 @@ class QCNN:
                                   wires=[qubit_info[idx], qubit_info[(idx+1) % L]])
                             theta_idx += pol_param
             return qml.expval(qml.PauliZ(0))
-        thetas = T.tensor(np.random.rand(total_param_num),
+        thetas = T.tensor(2*np.pi*np.random.rand(total_param_num),
                           dtype=T.float, requires_grad=True)
         # --------------------optimizer : learning rate and optimizer type should be tested!!
         opt = T.optim.Adam([thetas], lr=0.1)
