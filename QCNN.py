@@ -5,8 +5,9 @@ import pennylane as qml
 
 
 class QCNN:
-    def __init__(self, n_qubits):
+    def __init__(self, n_qubits, n_epoch):
         self.n_qubits = n_qubits
+        self.n_epoch = n_epoch
         # total required layer for QCNN
         self.total_layer = 1
         # information about used qubits in each layer
@@ -39,7 +40,7 @@ class QCNN:
         self.QCNN_tree.append([0])
         self.ancilla_info.append(-1)
         # total qubit is
-        self.dev = qml.device('default.qubit', wires=temp_ancilla)
+        self.dev = qml.device("default.qubit", wires=temp_ancilla)
         # generate MNIST dataset
         '''Generate MNIST quantum data set'''
         self.MQ = MQ.Get_MNIST_Quantum_States(16)
@@ -48,8 +49,12 @@ class QCNN:
         self.MQ.Real_Complex_Encoding()
         self.train_qs = self.MQ.train_quantum_states
         self.test_qs = self.MQ.test_quantum_states
+        # measurement basis : Z on 0 qubit
+        self.Z = T.tensor([[1, 0], [0, -1]], dtype=T.cfloat)
+        self.Z = T.kron(self.Z, T.eye(2**(temp_ancilla-1)))
 
     # ansatz info : information about building ansatz
+
     def Get_Unitary(self, thetas, ansatz_infos):
 
         @qml.device(self.dev, interface='torch')
@@ -98,19 +103,26 @@ class QCNN:
                     elif gt == 8:
                         qml.CRZ(thetas[theta_idx], wires=[cq, tq])
                         theta_idx += 1
-
             return qml.expval(qml.PauliZ(0))
         U_f = qml.matrix(qc)
         return U_f(thetas, ansatz_infos)
 
-    def partial_trace_out(self):
-        return
+    def Do_QCNN(self, ansatz_infos, total_param_num):
+        thetas = T.tensor(np.random.rand(total_param_num),
+                          dtype=T.float, requires_grad=True)
+        opt = T.optim.Adam([thetas], lr=1.1)
+        for ep in range(self.n_epoch):
+            opt.zero_grad()
+            U = self.Get_Unitary(thetas, ansatz_infos)
+            cost = T.trace(T.real(T.matmul(U, T.matmul(
+                self.train_qs, T.matmul(T.transpose(T.conj(U), 0, 1), self.Z)))))
+            cost.backward()
+            opt.step()
+            print('episode : ', ep, 'cost : ', cost.item())
 
-    def Do_QCNN(self):
-        return
 
-
-A = QCNN(5)
+A = QCNN(5, 200)
 print(A.QCNN_tree)
 print(A.ancilla_info)
 print(A.total_layer)
+A.Do_QCNN([[[0, 1, -1]], [[6, 2, 4]], [[7, 2, 4]], [[1, 2, -1]]], 3)
