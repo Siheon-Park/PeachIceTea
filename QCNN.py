@@ -8,7 +8,7 @@ class QCNN:
     def __init__(self, n_qubits):
         self.n_qubits = n_qubits
         # total required layer for QCNN
-        self.total_layer = 0
+        self.total_layer = 1
         # information about used qubits in each layer
         self.QCNN_tree = []
         # ancilla qubit location
@@ -113,3 +113,4 @@ class QCNN:
 A = QCNN(5)
 print(A.QCNN_tree)
 print(A.ancilla_info)
+print(A.total_layer)
