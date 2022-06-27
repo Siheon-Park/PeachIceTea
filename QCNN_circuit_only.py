@@ -69,7 +69,7 @@ class QCNN:
 
     def construct_circuit(self, thetas, data):
         # insert initial state as data in n_qubits, not total_qubits
-        qml.QubitStateVector(data, wires=range(self.n_qubits))
+        qml.AmplitudeEmbedding(data, wires=range(self.n_qubits), pad_with=0, normalize=True)
         theta_idx = 0
         for layer in range(self.total_layer):
             qubit_info = np.array(self.QCNN_tree[layer])
