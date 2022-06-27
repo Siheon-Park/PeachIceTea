@@ -36,45 +36,45 @@ class Get_MNIST_Quantum_States:
     def Real_Complex_Encoding(self):
         quantum_state_size = int(0.5*self.mnist_size**2)
         self.train_quantum_states = T.zeros(
-            len(self.train_sample), quantum_state_size, quantum_state_size, dtype=T.cfloat)
+            len(self.train_sample), quantum_state_size, dtype=T.cfloat)
+        self.train_labels = np.zeros(len(self.train_sample), dtype=np.int32)
         self.test_quantum_states = T.zeros(
-            len(self.test_sample), quantum_state_size, quantum_state_size, dtype=T.cfloat)
+            len(self.test_sample), quantum_state_size,  dtype=T.cfloat)
+        self.test_labels = np.zeros(len(self.test_sample), dtype=np.int32)
         for (train_idx, data) in enumerate(self.train_sample):
+            self.train_labels[train_idx] = 1-2*data[1]
             x = T.reshape(T.squeeze(data[0]), (-1,))
-            qs = T.zeros(quantum_state_size, 1, dtype=T.cfloat)
+            qs = T.zeros(quantum_state_size, dtype=T.cfloat)
             for i in range(quantum_state_size):
                 qs[i] = x[i]+self.i*x[quantum_state_size+i]
             qs = qs/T.sqrt(T.sum(T.abs(qs)**2))
-            qs = T.matmul(qs, T.transpose(T.conj(qs), 0, 1))
             self.train_quantum_states[train_idx] = qs
         for (test_idx, data) in enumerate(self.test_sample):
+            self.test_labels[test_idx] = 1-2*data[1]
             x = T.reshape(T.squeeze(data[0]), (-1,))
-            qs = T.zeros(quantum_state_size, 1, dtype=T.cfloat)
+            qs = T.zeros(quantum_state_size, dtype=T.cfloat)
             for i in range(quantum_state_size):
                 qs[i] = x[i]+self.i*x[quantum_state_size+i]
             qs = qs/T.sqrt(T.sum(T.abs(qs)**2))
-            qs = T.matmul(qs, T.transpose(T.conj(qs), 0, 1))
             self.test_quantum_states[test_idx] = qs
 
     def Real_Encoding(self):
         quantum_state_size = self.mnist_size**2
         self.train_quantum_states = T.zeros(
-            len(self.train_sample), quantum_state_size, quantum_state_size, dtype=T.cfloat)
+            len(self.train_sample), quantum_state_size,  dtype=T.cfloat)
         self.test_quantum_states = T.zeros(
-            len(self.test_sample), quantum_state_size, quantum_state_size, dtype=T.cfloat)
+            len(self.test_sample), quantum_state_size,  dtype=T.cfloat)
         for (train_idx, data) in enumerate(self.train_sample):
             x = T.reshape(T.squeeze(data[0]), (-1,))
-            qs = T.zeros(quantum_state_size, 1, dtype=T.cfloat)
+            qs = T.zeros(quantum_state_size, dtype=T.cfloat)
             for i in range(quantum_state_size):
                 qs[i] = x[i]
             qs = qs/T.sqrt(T.sum(T.abs(qs)**2))
-            qs = T.matmul(qs, T.transpose(T.conj(qs), 0, 1))
             self.train_quantum_states[train_idx] = qs
         for (test_idx, data) in enumerate(self.test_sample):
             x = T.reshape(T.squeeze(data[0]), (-1,))
-            qs = T.zeros(quantum_state_size, 1, dtype=T.cfloat)
+            qs = T.zeros(quantum_state_size, dtype=T.cfloat)
             for i in range(quantum_state_size):
                 qs[i] = x[i]
             qs = qs/T.sqrt(T.sum(T.abs(qs)**2))
-            qs = T.matmul(qs, T.transpose(T.conj(qs), 0, 1))
             self.test_quantum_states[test_idx] = qs
