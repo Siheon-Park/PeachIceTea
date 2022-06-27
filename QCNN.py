@@ -6,13 +6,11 @@ import pennylane as qml
 
 class QCNN:
     def __init__(self, n_qubits):
-        self.MQ = MQ(16)
         self.n_qubits = n_qubits
-        self.dev = qml.deivce('default.qubit', wires=self.n_qubits)
-        self.current_layer = 0
-        # construct QCNN tree
+        self.dev = qml.device('default.qubit', wires=self.n_qubits)
+        # total required layer for QCNN
         self.total_layer = 0
-        # QCNN tree location
+        # information about used qubits in each layer
         self.QCNN_tree = []
         # ancilla qubit location
         self.ancilla_info = []
@@ -42,66 +40,69 @@ class QCNN:
         self.QCNN_tree.append([0])
         self.ancilla_info.append(-1)
         # generate MNIST dataset
+        '''Generate MNIST quantum data set'''
+        self.MQ = MQ.Get_MNIST_Quantum_States(16)
         # train set : 1000, test set : 100
-        self.MQ.GET_MNIST(1000, 100, [0, 1])  # label 0,1
+        self.MQ.Get_MNIST(1000, 100, [0, 1])  # label 0,1
+        self.MQ.Real_Complex_Encoding()
         self.train_qs = self.MQ.train_quantum_states
         self.test_qs = self.MQ.test_quantum_states
+        ''''''
 
     # ansatz info : information about building ansatz
-    # ansatz 1,2,....,N
-    # ansatz 0 : general unitary
-
     def Get_Unitary(self, ansatz_infos, total_param_num):
         # theta initialization
         thetas = T.tensor(np.random.rand(total_param_num),
                           dtype=T.float, requires_grad=True)
-        # theta index
-        theta_idx = 0
-        # apply unitary for each layer
-        for layer in range(self.total_layer):
-            # layer ansatz info : set of gate informations
-            layer_ansatz_info = ansatz_infos[layer]
-            # ansatz info : [gatetype,control_qubit,target_qubit]
-            for ansatz in layer_ansatz_info:
-                gt = ansatz[0]
-                cq = ansatz[1]
-                tq = ansatz[2]
-                # Hadamard
-                if gt == 0:
-                    qml.Hadamard()
-                # RX
-                elif gt == 1:
-                    qml.RX(thetas[theta_idx], wires=[tq])
-                    theta_idx += 1
-                # RY
-                elif gt == 2:
-                    qml.RY(thetas[theta_idx], wires=[tq])
-                    theta_idx += 1
-                # RZ
-                elif gt == 3:
-                    qml.RZ(thetas[theta_idx], wires=[tq])
-                    theta_idx += 1
-                # CNOT
-                elif gt == 4:
-                    qml.CNOT(wires=[cq, tq])
-                # CZ
-                elif gt == 5:
-                    qml.CZ(wires=[cq, tq])
-                # CRX
-                elif gt==6:
-                    qml.CRX(thetas[theta_idx],wires=[cq,tq])
-                    theta_idx+=1
-                # CRY
-                elif gt==7:
-                    qml.CRY(thetas[theta_idx],wires=[cq,tq])
-                    theta_idx+=1
-                # CRZ
-                elif gt==8:
-                    qml.CRZ(thetas[theta_idx],wires=[cq,tq])
-                    theta_idx+=1
 
-                return
-            return
+        @qml.device(self.dev, wires=self.n_qubits)
+        def qc(thetas, ansatz_infos):
+            # theta index
+            theta_idx = 0
+            # apply unitary for each layer
+            for layer in range(self.total_layer):
+                # layer ansatz info : set of gate informations
+                layer_ansatz_info = ansatz_infos[layer]
+                # ansatz info : [gatetype,control_qubit,target_qubit]
+                for ansatz in layer_ansatz_info:
+                    gt = ansatz[0]
+                    cq = ansatz[1]
+                    tq = ansatz[2]
+                    # Hadamard
+                    if gt == 0:
+                        qml.Hadamard()
+                    # RX
+                    elif gt == 1:
+                        qml.RX(thetas[theta_idx], wires=[tq])
+                        theta_idx += 1
+                    # RY
+                    elif gt == 2:
+                        qml.RY(thetas[theta_idx], wires=[tq])
+                        theta_idx += 1
+                    # RZ
+                    elif gt == 3:
+                        qml.RZ(thetas[theta_idx], wires=[tq])
+                        theta_idx += 1
+                    # CNOT
+                    elif gt == 4:
+                        qml.CNOT(wires=[cq, tq])
+                    # CZ
+                    elif gt == 5:
+                        qml.CZ(wires=[cq, tq])
+                    # CRX
+                    elif gt == 6:
+                        qml.CRX(thetas[theta_idx], wires=[cq, tq])
+                        theta_idx += 1
+                    # CRY
+                    elif gt == 7:
+                        qml.CRY(thetas[theta_idx], wires=[cq, tq])
+                        theta_idx += 1
+                    # CRZ
+                    elif gt == 8:
+                        qml.CRZ(thetas[theta_idx], wires=[cq, tq])
+                        theta_idx += 1
+
+            return qml.expval(qml.PauliZ(0))
         return
 
     def partial_trace_out(self):
