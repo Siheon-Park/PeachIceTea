@@ -55,3 +55,13 @@ class PoolingCirc(qml.operation.Operation):
         decomp.append(qml.CRX(weights[1], wires = wires))
         decomp.append(qml.X(wires = wires[0]))
         return decomp
+
+if __name__=='__main__':
+    dev = qml.device('default.qubit', wires=2)
+
+    @qml.qnode(dev)
+    def circuit(w):
+        ConvCirc1(w, wires=(0, 1))
+        return qml.PauliZ(0)
+
+    print(qml.draw(circuit)([0, 1]))
