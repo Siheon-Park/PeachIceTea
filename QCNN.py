@@ -5,9 +5,12 @@ import pennylane as qml
 
 
 class QCNN:
-    def __init__(self, n_qubits, n_epoch):
+    def __init__(self, n_qubits, n_epoch, batch_size, n_data, stride):
         self.n_qubits = n_qubits
         self.n_epoch = n_epoch
+        self.batch_size = batch_size
+        self.n_data = n_data
+        self.stride = stride
         # total required layer for QCNN
         self.total_layer = 1
         # information about used qubits in each layer
@@ -39,8 +42,11 @@ class QCNN:
 
         self.QCNN_tree.append([0])
         self.ancilla_info.append(-1)
-        # total qubit is
-        self.dev = qml.device("default.qubit", wires=temp_ancilla)
+        # total qubit required
+        self.total_qubit = temp_ancilla
+        self.dev = qml.device("default.qubit", wires=self.total_qubit)
+        # loss function type
+        self.loss = T.nn.MSELoss()
         # generate MNIST dataset
         '''Generate MNIST quantum data set'''
         self.MQ = MQ.Get_MNIST_Quantum_States(16)
@@ -48,81 +54,88 @@ class QCNN:
         self.MQ.Get_MNIST(1000, 100, [0, 1])  # label 0,1
         self.MQ.Real_Complex_Encoding()
         self.train_qs = self.MQ.train_quantum_states
+        self.train_labels = T.tensor(self.MQ.train_labels, dtype=T.float)
         self.test_qs = self.MQ.test_quantum_states
-        # measurement basis : Z on 0 qubit
-        self.Z = T.tensor([[1, 0], [0, -1]], dtype=T.cfloat)
-        self.Z = T.kron(self.Z, T.eye(2**(temp_ancilla-1)))
+        self.test_labels = T.tensor(self.MQ.test_labels, dtype=T.float)
 
-    # ansatz info : information about building ansatz
-
-    def Get_Unitary(self, thetas, ansatz_infos):
-
-        @qml.device(self.dev, interface='torch')
-        def qc(thetas, ansatz_infos):
-            # theta index
+    def Do_QCNN(self, ansatz_function, ansatz_param, total_param_num):
+        @qml.qnode(self.dev, interface='torch')
+        def qc(thetas, ansatz_f, ansatz_param, data):
+            # insert initial state as data in n_qubits, not total_qubits
+            qml.QubitStateVector(data, wires=range(self.n_qubits))
             theta_idx = 0
-            # apply unitary for each layer
             for layer in range(self.total_layer):
-                # layer ansatz info : set of gate informations
-                layer_ansatz_info = ansatz_infos[layer]
-                # ansatz info : [gatetype,control_qubit,target_qubit]
-                for ansatz in layer_ansatz_info:
-                    gt = ansatz[0]
-                    cq = ansatz[1]
-                    tq = ansatz[2]
-                    # Hadamard
-                    if gt == 0:
-                        qml.Hadamard()
-                    # RX
-                    elif gt == 1:
-                        qml.RX(thetas[theta_idx], wires=[tq])
-                        theta_idx += 1
-                    # RY
-                    elif gt == 2:
-                        qml.RY(thetas[theta_idx], wires=[tq])
-                        theta_idx += 1
-                    # RZ
-                    elif gt == 3:
-                        qml.RZ(thetas[theta_idx], wires=[tq])
-                        theta_idx += 1
-                    # CNOT
-                    elif gt == 4:
-                        qml.CNOT(wires=[cq, tq])
-                    # CZ
-                    elif gt == 5:
-                        qml.CZ(wires=[cq, tq])
-                    # CRX
-                    elif gt == 6:
-                        qml.CRX(thetas[theta_idx], wires=[cq, tq])
-                        theta_idx += 1
-                    # CRY
-                    elif gt == 7:
-                        qml.CRY(thetas[theta_idx], wires=[cq, tq])
-                        theta_idx += 1
-                    # CRZ
-                    elif gt == 8:
-                        qml.CRZ(thetas[theta_idx], wires=[cq, tq])
-                        theta_idx += 1
+                qubit_info = np.array(self.QCNN_tree[layer])
+                L = len(qubit_info)
+                qubit_info_index = np.array(range(L))
+                qubit_info_splited = [[idx for idx in qubit_info_index if idx % 2 == 0], [
+                    idx for idx in qubit_info_index if idx % 2 == 1]]
+                for index in qubit_info_splited:
+                    for idx in index:
+                        if qubit_info[idx] != qubit_info[(idx+self.stride) % L]:
+                            ansatz_f(
+                                thetas[theta_idx:theta_idx+ansatz_param], wires=[qubit_info[idx], qubit_info[(idx+self.stride) % L]])
+                            theta_idx += ansatz_param
             return qml.expval(qml.PauliZ(0))
-        U_f = qml.matrix(qc)
-        return U_f(thetas, ansatz_infos)
-
-    def Do_QCNN(self, ansatz_infos, total_param_num):
         thetas = T.tensor(np.random.rand(total_param_num),
                           dtype=T.float, requires_grad=True)
         opt = T.optim.Adam([thetas], lr=1.1)
+        loss_history = []
         for ep in range(self.n_epoch):
             opt.zero_grad()
-            U = self.Get_Unitary(thetas, ansatz_infos)
-            cost = T.trace(T.real(T.matmul(U, T.matmul(
-                self.train_qs, T.matmul(T.transpose(T.conj(U), 0, 1), self.Z)))))
-            cost.backward()
+            batch = np.random.choice(
+                np.arange(self.n_data), self.batch_size, replace=False)
+            # ---------------------------you have to define train quantum states!!
+            batch_data = self.train_qs[batch]
+            # ---------------------------- you have to define train labels!!
+            # --------------------------- labels must be +1 or -1
+            batch_labels = self.train_labels[batch]
+
+            batch_results = T.zeros(self.batch_size, dtype=T.float)
+            for (idx, data) in enumerate(batch_data):
+                batch_results[idx] = qc(
+                    thetas, ansatz_function, ansatz_param, data)
+            loss = self.loss(batch_results, batch_labels)
+            loss.backward()
             opt.step()
-            print('episode : ', ep, 'cost : ', cost.item())
+            if ep == 0:
+                drawer = qml.draw(qc)
+                print(drawer(thetas, ansatz_function, ansatz_param, data))
+            print('episode : ', ep, 'loss : ', loss.item())
+            loss_history.append(loss.item())
+        return loss_history, thetas
 
-
-A = QCNN(5, 200)
-print(A.QCNN_tree)
-print(A.ancilla_info)
-print(A.total_layer)
-A.Do_QCNN([[[0, 1, -1]], [[6, 2, 4]], [[7, 2, 4]], [[1, 2, -1]]], 3)
+    def Do_Test(self, ansatz_function, ansatz_param, thetas):
+        @qml.qnode(self.dev, interface='torch')
+        def qc(thetas, ansatz_f, ansatz_param, data):
+            # insert initial state as data in n_qubits, not total_qubits
+            qml.QubitStateVector(data, wires=range(self.n_qubits))
+            theta_idx = 0
+            for layer in range(self.total_layer):
+                qubit_info = np.array(self.QCNN_tree[layer])
+                L = len(qubit_info)
+                qubit_info_index = np.array(range(L))
+                qubit_info_splited = [[idx for idx in qubit_info_index if idx % 2 == 0], [
+                    idx for idx in qubit_info_index if idx % 2 == 1]]
+                for index in qubit_info_splited:
+                    for idx in index:
+                        if qubit_info[idx] != qubit_info[(idx+self.stride) % L]:
+                            ansatz_f(
+                                thetas[theta_idx:theta_idx+ansatz_param], wires=[qubit_info[idx], qubit_info[(idx+self.stride) % L]])
+                            theta_idx += ansatz_param
+            return qml.expval(qml.PauliZ(0))
+        N = 0
+        N_correct = 0
+        for (idx, test_data) in enumerate(self.test_qs):
+            result = qc(thetas, ansatz_function, ansatz_param, test_data)
+            if self.test_labels[idx] == 1:
+                if result > 0:
+                    N_correct += 1
+            elif self.test_labels[idx] == -1:
+                if result < 0:
+                    N_correct += 1
+            else:
+                print('Unable situation')
+                return
+            N += 1
+        return N_correct/N
