@@ -1,1 +1,0 @@
-MNIST PCA dataset folder
