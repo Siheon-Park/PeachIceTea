@@ -72,9 +72,9 @@ class QCNN:
         qml.AmplitudeEmbedding(data, wires=range(self.n_qubits), pad_with=0, normalize=True)
         theta_idx = 0
         for layer in range(self.total_layer):
-            qubit_info = np.array(self.QCNN_tree[layer])
+            qubit_info = list(self.QCNN_tree[layer])
             L = len(qubit_info)
-            qubit_info_index = np.array(range(L))
+            qubit_info_index = list(range(L))
             if self.stride == 1:
                 qubit_info_splited = [[idx for idx in qubit_info_index if idx % 2 == 0], [
                     idx for idx in qubit_info_index if idx % 2 == 1]]

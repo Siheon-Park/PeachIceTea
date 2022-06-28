@@ -132,3 +132,4 @@ dmypy.json
 /runs
 /mnist datas
 *.csv
+.DS_Store
