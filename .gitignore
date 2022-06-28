@@ -133,3 +133,4 @@ dmypy.json
 /mnist datas
 *.csv
 .DS_Store
+experiment_results
