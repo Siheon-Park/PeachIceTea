@@ -21,7 +21,7 @@
   3. Single ancilla padding (ancilla qubit is added to make all layers even
      1. 30 featues to 5 qubit 0.989 accuracy (for 0 vs 2: 0.9284 accuracy
 
-| Method | Features | Initial Qubits | Ancillary Qubits | Total Qubits | Accuracy |
+| Method | Features | Initial Qubits $M$ | Ancillary Qubits | Total Qubits | Accuracy |
 |--------|----------|------------|-------------|----------|--------|
 | - | 256 | 8 | 0 |8| 97%|
 |Conventional| 30 | 5 | $\mathcal{O}(\log(M))$=2 |7| 97.4% |
