@@ -3,7 +3,6 @@
 
 2022 양자정보경진대회 (해커톤)
 
-
 ## Settings
 
     - TRAINING_SIZE: 10000
