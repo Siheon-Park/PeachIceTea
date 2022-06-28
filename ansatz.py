@@ -28,9 +28,9 @@ class PoolingCirc():
     
     def apply(self, weights, wires):
         qml.CRY(weights[0], wires = wires)
-        qml.X(wires[0])
+        qml.PauliX(wires[0])
         qml.CRY(weights[1], wires = wires)
-        qml.X(wires[0])
+        qml.PauliX(wires[0])
 
 if __name__=="__main__":
     dev = qml.device('default.qubit', wires=2)
