@@ -27,6 +27,14 @@ class DataframeDataset(Dataset):
             data_list.append(self.data[self.data["label"]==label])
         self.data = concat(data_list)
 
+    def periodic_data_padding(self):
+        data_dim = self.data.shape[1]-1
+        total_data_dim = int(2**(2**np.ceil(np.log2(np.log2(data_dim)))))
+        num_added_columns = 0
+        for i in range(data_dim, total_data_dim):
+            self.data[str(i)] = self.data[str((num_added_columns % data_dim))]
+            num_added_columns += 1
+            
     def __getitem__(self, index):
         label = self.data.iloc[index]['label']
         image = self.data.iloc[index][1:]
