@@ -37,4 +37,5 @@
   - QCNN decoder (single-anscila method on 3-qubit code)
   - Shor's decoder
 
-By comparing with various error rates, it turns out that QCNN decoder outperforms Shor's decoder slightly for every error rates.
+By comparing with various error rates, it turns out that QCNN decoder outperforms Shor's decoder for every error rates.
+![qec_qcnn_result](./figs/graphs/QCNNSHOR_Sim.png)
