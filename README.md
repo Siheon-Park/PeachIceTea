@@ -24,8 +24,17 @@
 
 | Method | Features | Initial Qubits $M$ | Ancillary Qubits | Total Qubits | Accuracy |
 |--------|----------|------------|-------------|----------|--------|
-| None | 256 | 8 | 0 |8| 97%|
+| Conventional | 256 | 8 | 0 |8| 97%|
 |Layer-wise| 30 | 5 | $\mathcal{O}(\log(M))$=2 |7| 97.4% |
-|Zero Data Padding|30|5|$\mathcal{O}(M)$=3|8|98.4%|
-|Periodic Data Padding|30|5|$\mathcal{O}(M)$=3|8|94.6%|
 |Single-Ancilla|30|5|1|6|98.9%|
+|Zero-Data Padding|30|5|$\mathcal{O}(M)$=3|8|98.4%|
+|Periodic-Data Padding|30|5|$\mathcal{O}(M)$=3|8|94.6%|
+
+### QEC for arbitrary code length
+
+- Encoder: Shor's repetition code
+- Decoder:
+  - QCNN decoder (single-anscila method on 3-qubit code)
+  - Shor's decoder
+
+By comparing with various error rates, it turns out that QCNN decoder outperforms Shor's decoder slightly for every error rates.
